@@ -2,7 +2,7 @@ use anyhow::{anyhow, Result};
 use itertools::Itertools;
 use std::fs::read_to_string;
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 struct Calibration {
     first_digit: char,
     second_digit: char,
@@ -119,15 +119,13 @@ fn parse_digits_from_text(text: String) -> Vec<char> {
 
 fn main() -> Result<()> {
     let text = read_to_string("puzzle_inputs/input.txt")?;
-    let calibrations: Vec<Calibration> = text
+    let calibration_sum: u32 = text
         .trim_end()
         .split('\n')
         .map(Calibration::parse)
-        .try_collect()?;
-    let calibration_sum: u32 = calibrations
-        .iter()
-        .map(|calibration| calibration.value())
-        .sum();
+        .process_results(|calibrations| {
+            calibrations.map(|calibration| calibration.value()).sum()
+        })?;
     println!("{calibration_sum}");
     Ok(())
 }
