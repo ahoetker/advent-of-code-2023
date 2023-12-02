@@ -12,3 +12,6 @@ itertools = "0.12.0"
 [[bin]]
 name = "part1"
 
+[[bin]]
+name = "part2"
+
