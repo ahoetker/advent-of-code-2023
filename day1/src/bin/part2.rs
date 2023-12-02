@@ -1,6 +1,25 @@
 use anyhow::{anyhow, Result};
 use itertools::Itertools;
+use lazy_static::lazy_static;
+use std::collections::HashMap;
 use std::fs::read_to_string;
+
+lazy_static! {
+    static ref SPELLED_DIGITS: HashMap<&'static str, char> = {
+        let mut m = HashMap::new();
+        m.insert("zero", '0');
+        m.insert("one", '1');
+        m.insert("two", '2');
+        m.insert("three", '3');
+        m.insert("four", '4');
+        m.insert("five", '5');
+        m.insert("six", '6');
+        m.insert("seven", '7');
+        m.insert("eight", '8');
+        m.insert("nine", '9');
+        m
+    };
+}
 
 #[derive(Debug, Copy, Clone)]
 struct Calibration {
@@ -10,7 +29,7 @@ struct Calibration {
 
 impl Calibration {
     pub fn parse(text: &str) -> Result<Self> {
-        let digits = parse_digits_from_text(text.to_string());
+        let digits = parse_digits_from_text(text);
         if digits.is_empty() {
             return Err(anyhow!("No digits parsed from: {}", text));
         }
@@ -27,92 +46,27 @@ impl Calibration {
     }
 }
 
-fn parse_digits_from_text(text: String) -> Vec<char> {
+fn parse_digits_from_text(text: &str) -> Vec<char> {
     let mut digits = Vec::new();
-    let mut text = text;
-    while let Some(c) = text.chars().next() {
+    let mut i = 0;
+    let length = text.len();
+    'outer: while i < length {
+        let c = text.chars().nth(i).unwrap();
         if c.is_ascii_digit() {
             digits.push(c);
-            let _ = text.remove(0);
+            i += 1;
             continue;
         }
-        if text.len() >= 3 {
-            if &text[..3] == "one" {
-                digits.push('1');
-                for _ in [0; 2] {
-                    let _ = text.remove(0);
+        for spelled_length in 3..=5 {
+            if length - i >= spelled_length {
+                if let Some(digit) = SPELLED_DIGITS.get(&text[i..i + spelled_length]) {
+                    digits.push(*digit);
+                    i += spelled_length - 1;
+                    continue 'outer;
                 }
-                continue;
-            }
-            if &text[..3] == "two" {
-                digits.push('2');
-                for _ in [0; 2] {
-                    let _ = text.remove(0);
-                }
-                continue;
-            }
-            if &text[..3] == "six" {
-                digits.push('6');
-                for _ in [0; 2] {
-                    let _ = text.remove(0);
-                }
-                continue;
             }
         }
-        if text.len() >= 4 {
-            if &text[..4] == "zero" {
-                digits.push('0');
-                for _ in [0; 3] {
-                    let _ = text.remove(0);
-                }
-                continue;
-            }
-            if &text[..4] == "four" {
-                digits.push('4');
-                for _ in [0; 3] {
-                    let _ = text.remove(0);
-                }
-                continue;
-            }
-            if &text[..4] == "five" {
-                digits.push('5');
-                for _ in [0; 3] {
-                    let _ = text.remove(0);
-                }
-                continue;
-            }
-            if &text[..4] == "nine" {
-                digits.push('9');
-                for _ in [0; 3] {
-                    let _ = text.remove(0);
-                }
-                continue;
-            }
-        }
-        if text.len() >= 5 {
-            if &text[..5] == "three" {
-                digits.push('3');
-                for _ in [0; 4] {
-                    let _ = text.remove(0);
-                }
-                continue;
-            }
-            if &text[..5] == "seven" {
-                digits.push('7');
-                for _ in [0; 4] {
-                    let _ = text.remove(0);
-                }
-                continue;
-            }
-            if &text[..5] == "eight" {
-                digits.push('8');
-                for _ in [0; 4] {
-                    let _ = text.remove(0);
-                }
-                continue;
-            }
-        }
-        let _ = text.remove(0);
+        i += 1;
     }
     digits
 }
