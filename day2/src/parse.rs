@@ -34,7 +34,7 @@ fn parse_draw(input: &str) -> IResult<&str, Dice> {
 pub fn parse_game(input: &str) -> IResult<&str, Game> {
     let (input, number) = game_number(input)?;
     let (remains, draws) = delimited(tag(":"), many1(parse_draw), opt(newline))(input)?;
-    Ok((remains, Game::new(number, draws)))
+    Ok((remains, Game { number, draws }))
 }
 
 #[cfg(test)]
