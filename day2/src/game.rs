@@ -20,6 +20,26 @@ pub enum Color {
     Blue,
 }
 
+impl Game {
+    pub fn most_dice_shown(&self) -> Dice {
+        let mut red = 0;
+        let mut green = 0;
+        let mut blue = 0;
+        self.draws.iter().for_each(|draw| {
+            if draw.red > red {
+                red = draw.red;
+            }
+            if draw.green > green {
+                green = draw.green;
+            }
+            if draw.blue > blue {
+                blue = draw.blue;
+            }
+        });
+        Dice { red, green, blue }
+    }
+}
+
 impl From<Vec<(u32, Color)>> for Dice {
     fn from(quantity_colors: Vec<(u32, Color)>) -> Self {
         let red = match quantity_colors

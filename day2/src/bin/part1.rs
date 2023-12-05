@@ -7,7 +7,7 @@ use itertools::Itertools;
 use std::fs::read_to_string;
 
 pub fn validate(game: Game, max_dice: &Dice) -> Result<Game> {
-    let Dice { red, green, blue } = most_dice_shown(&game);
+    let Dice { red, green, blue } = game.most_dice_shown();
     ensure!(
         red <= max_dice.red,
         format!(
@@ -30,24 +30,6 @@ pub fn validate(game: Game, max_dice: &Dice) -> Result<Game> {
         )
     );
     Ok(game)
-}
-
-fn most_dice_shown(game: &Game) -> Dice {
-    let mut red = 0;
-    let mut green = 0;
-    let mut blue = 0;
-    game.draws.iter().for_each(|draw| {
-        if draw.red > red {
-            red = draw.red;
-        }
-        if draw.green > green {
-            green = draw.green;
-        }
-        if draw.blue > blue {
-            blue = draw.blue;
-        }
-    });
-    Dice { red, green, blue }
 }
 
 fn main() -> Result<()> {
