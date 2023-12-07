@@ -2,22 +2,25 @@ use nom::{
     branch::alt,
     bytes::complete::take_while1,
     character::complete::{digit1, satisfy},
+    error::Error,
     multi::many1,
-    IResult,
+    Finish, IResult,
 };
 use std::collections::HashMap;
+use std::str::FromStr;
 
 #[derive(Debug)]
-pub struct Schematic<'a> {
-    pub numbers: Vec<SchematicNumber<'a>>,
+pub struct Schematic {
+    pub numbers: Vec<SchematicNumber>,
     pub symbols: HashMap<(usize, usize), char>,
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct SchematicNumber<'a> {
-    pub number: &'a str,
+pub struct SchematicNumber {
+    pub value: u32,
     pub row: usize,
     pub col: usize,
+    pub length: usize,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -25,6 +28,20 @@ enum SchematicEntry<'a> {
     Dots(&'a str),
     Symbol(char),
     Number(&'a str),
+}
+
+impl FromStr for Schematic {
+    type Err = Error<String>;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match parse_schematic(s).finish() {
+            Ok((_remaining, schematic)) => Ok(schematic),
+            Err(Error { input, code }) => Err(Error {
+                input: input.to_string(),
+                code,
+            }),
+        }
+    }
 }
 
 pub fn parse_schematic(s: &str) -> IResult<&str, Schematic> {
@@ -45,9 +62,10 @@ pub fn parse_schematic(s: &str) -> IResult<&str, Schematic> {
                 }
                 SchematicEntry::Number(number) => {
                     numbers.push(SchematicNumber {
-                        number,
+                        value: number.parse::<_>().unwrap(),
                         row: line_number,
                         col: col_number,
+                        length: number.len(),
                     });
                     col_number += number.len();
                 }
