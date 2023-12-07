@@ -84,7 +84,7 @@ fn sum_part_numbers(schematic: &Schematic) -> u32 {
         .iter()
         .filter_map(|SchematicNumber { row, col, number }| {
             for row_number in row.saturating_sub(1)..=row.saturating_add(1) {
-                for col_number in col.saturating_sub(1)..=col.saturating_add(number.len() + 1) {
+                for col_number in col.saturating_sub(1)..=col.saturating_add(number.len()) {
                     if schematic.symbols.contains_key(&(row_number, col_number)) {
                         return Some(number.parse::<u32>().unwrap());
                     }
