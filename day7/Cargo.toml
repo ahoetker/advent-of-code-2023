@@ -9,9 +9,15 @@ edition = "2021"
 anyhow = "1.0.75"
 itertools = "0.12.0"
 nom = "7.1.3"
+strum = { version = "0.25.0", features = ["derive"] }
+strum_macros = "0.25.3"
+
+[dev-dependencies]
+rstest = "0.18.2"
 
 [[bin]]
 name = "part1"
 
-[dev-dependencies]
-rstest = "0.18.2"
+[[bin]]
+name = "part2"
+

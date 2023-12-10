@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use anyhow::Result;
 use itertools::Itertools;
 use nom::{
     character::complete::{alphanumeric1, digit1, multispace0, newline},
@@ -9,14 +10,16 @@ use nom::{
 };
 use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::fs::read_to_string;
 use std::str::FromStr;
+use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, EnumIter)]
 pub enum Card {
     Ace,
     King,
     Queen,
-    Jack,
     Ten,
     Nine,
     Eight,
@@ -26,6 +29,7 @@ pub enum Card {
     Four,
     Three,
     Two,
+    Joker,
 }
 
 impl Ord for Card {
@@ -48,7 +52,6 @@ impl TryFrom<char> for Card {
             'A' => Ok(Self::Ace),
             'K' => Ok(Self::King),
             'Q' => Ok(Self::Queen),
-            'J' => Ok(Self::Jack),
             'T' => Ok(Self::Ten),
             '9' => Ok(Self::Nine),
             '8' => Ok(Self::Eight),
@@ -58,6 +61,7 @@ impl TryFrom<char> for Card {
             '4' => Ok(Self::Four),
             '3' => Ok(Self::Three),
             '2' => Ok(Self::Two),
+            'J' => Ok(Self::Joker),
             _ => Err(anyhow!("{} is not a valid Camel Card.", c)),
         }
     }
@@ -69,7 +73,6 @@ impl Card {
             Self::Ace => 14,
             Self::King => 13,
             Self::Queen => 12,
-            Self::Jack => 11,
             Self::Ten => 10,
             Self::Nine => 9,
             Self::Eight => 8,
@@ -79,6 +82,7 @@ impl Card {
             Self::Four => 4,
             Self::Three => 3,
             Self::Two => 2,
+            Self::Joker => 1,
         }
     }
 }
@@ -140,13 +144,36 @@ fn hand_bid(s: &str) -> IResult<&str, u32> {
 
 impl Hand {
     pub fn new(cards: Vec<Card>, bid: u32) -> Self {
-        let hand_type = determine_hand_type(&cards);
+        let possible_cards = get_possible_cards(&cards);
+        let best_hand_type = possible_cards
+            .iter()
+            .map(|c| determine_hand_type(c))
+            .max()
+            .unwrap();
         Self {
             cards,
             bid,
-            hand_type,
+            hand_type: best_hand_type,
         }
     }
+}
+
+fn get_possible_cards(cards: &[Card]) -> Vec<Vec<Card>> {
+    Card::iter()
+        .filter(|&substitution_card| Card::Joker != substitution_card)
+        .map(|substitution_card| {
+            cards
+                .iter()
+                .map(|&card| {
+                    if Card::Joker == card {
+                        substitution_card
+                    } else {
+                        card
+                    }
+                })
+                .collect()
+        })
+        .collect()
 }
 
 fn determine_hand_type(cards: &[Card]) -> HandType {
@@ -215,22 +242,31 @@ impl HandType {
     }
 }
 
+fn process(input_file: &str) -> Result<u32> {
+    let input = read_to_string(input_file)?;
+    let mut hands: Vec<Hand> = input.lines().map(Hand::from_str).try_collect()?;
+    hands.sort();
+    Ok(hands
+        .iter()
+        .enumerate()
+        .map(|(index, hand)| (index as u32 + 1) * hand.bid)
+        .sum::<u32>())
+}
+
+fn main() -> Result<()> {
+    let result = process("puzzle_inputs/input.txt")?;
+    println!("{result}");
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rstest::*;
-    use std::fs::read_to_string;
 
-    #[rstest]
-    #[case(vec![Card::Ace, Card::Ace, Card::Ace, Card::Ace, Card::Ace], HandType::FiveOfAKind)]
-    #[case(vec![Card::Ace, Card::Ace, Card::Eight, Card::Ace, Card::Ace], HandType::FourOfAKind)]
-    #[case(vec![Card::Two, Card::Three, Card::Three, Card::Three, Card::Two], HandType::FullHouse)]
-    #[case(vec![Card::Ten, Card::Ten, Card::Ten, Card::Nine, Card::Eight], HandType::ThreeOfAKind)]
-    #[case(vec![Card::Two, Card::Three, Card::Four, Card::Three, Card::Two], HandType::TwoPair)]
-    #[case(vec![Card::Ace, Card::Two, Card::Three, Card::Ace, Card::Four], HandType::OnePair)]
-    #[case(vec![Card::Two, Card::Three, Card::Four, Card::Five, Card::Six], HandType::HighCard)]
-    fn test_determine_hand_type(#[case] cards: Vec<Card>, #[case] expected: HandType) {
-        let hand_type = determine_hand_type(&cards);
-        assert_eq!(hand_type, expected);
+    #[test]
+    fn test_process() -> Result<()> {
+        let result = process("puzzle_inputs/sample.txt")?;
+        assert_eq!(result, 5905);
+        Ok(())
     }
 }
